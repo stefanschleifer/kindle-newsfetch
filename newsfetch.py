@@ -36,10 +36,19 @@ def create_configuration():
 		config = ConfigParser.SafeConfigParser()
 		config.add_section('config')
 		config.set('config', 'KINDLE_ADDR', raw_input("Please enter your Kindle e-mail address where you want the converted files to be delivered to: "))
-		config.set('config', 'OUTPUT_PATH', raw_input("Please enter the absolute path to the directory for storing the converted files: "))
+		recipes_path = raw_input("Please enter the absolute path to the directory where your recipes are stored [%s/recipes]: " % os.getcwd())
+		if not recipes_path: # user chose to use default value
+			recipes_path = "%s/recipes" % os.getcwd()
+		config.set('config', 'RECIPES_PATH', recipes_path)
+		output_path = raw_input("Please enter the absolute path to the directory for storing the converted files [%s/tmp]: " % os.getcwd())
+		if not output_path: # user chose to use default value
+			output_path = "%s/tmp" % os.getcwd()
+		config.set('config', 'OUTPUT_PATH', output_path)
 		config.set('config', 'SMTP_SERVER', raw_input("Please enter the address of your desired SMTP server: "))
 		config.set('config', 'SMTP_USER', raw_input("Please enter the username for the given server: "))
 		config.set('config', 'SMTP_PW', raw_input("Please enter the password for the given user (WILL BE STORED IN PLAINTEXT!): "))
+		config.set('config', 'EBOOK-CONVERT', raw_input("Please enter the absolute path to 'ebook-convert': "))
+		config.set('config', 'CALIBRE-SMTP', raw_input("Please enter the absolute path to 'calibre-smtp': "))
 
 		config.add_section('example')
 		config.set('example', 'nytimes', 'New York Times')
@@ -90,8 +99,37 @@ def add_item(recipe, name, section):
 
 # return a list of unique recipe names which
 # should be converted in the current run
-def collect_recipes(section='all'):
-	print "not implemented yet"
+def collect_recipes(section='all', item=None):
+
+	recipes = []
+
+	config = ConfigParser.SafeConfigParser()
+	config.read(CONFIGFILE)
+	
+	if item is None: # no request for specific item
+		# all entries requested
+		if 'all' == section:
+			for section in config.sections():
+				if section != 'config' and section != 'example':	
+					for recipe, name in config.items(section):
+						recipes.append(recipe)
+		else: # all entries for specific section
+			if config.has_section(section):
+				for recipe, name in config.items(section):
+					recipes.append(recipe)
+			else:
+				raise Exception("Section %s is not available in current configuration." % section)
+	else: # specific entry
+		for section in config.sections():
+			if section != 'config' and section != 'example':
+				for recipe, name in config.items(section):
+					if item == recipe:
+						recipes.append(item)
+		if 0 == len(recipes): # no such recipe found
+			raise Exception("Recipe named %s could not be found, please check the name and your configuration." % item)			
+
+	# Attention: We're removing duplicate entries here, user hopefully expect this behavior!
+	return list(set(recipes))
 
 if '__main__' == __name__:
 
@@ -111,20 +149,20 @@ if '__main__' == __name__:
 			print "Cannot continue without configuration file. Either rerun %s and let it create the configuration file for you or create it manually. See example.cfg for possible options/values." % sys.argv[0]
 			sys.exit(1)
 
-	if 'all' == sys.argv[1]:
-		pass
-	elif 'section' == sys.argv[1]:
-		pass
-	elif 'item' == sys.argv[1]:
-		pass
-	elif 'add' == sys.argv[1]:
+	if 'all' == sys.argv[1]: # convert and mail all configured items
+		recipes = collect_recipes()
+	elif 'section' == sys.argv[1]: # convert and mail all items of a given section
+		recipes = collect_recipes(sys.argv[2])
+	elif 'item' == sys.argv[1]: # convert and mail exactly one specific item
+		recipes = collect_recipes(item=sys.argv[2])
+	elif 'add' == sys.argv[1]: # add a new configuration item
 		try:
 			add_item(sys.argv[2], sys.argv[3], sys.argv[4])
 		except Exception, e:
 			print "Could not add new item: %s" % e
 		else:
 			print "Successfully added item to configuration."
-	elif 'list' == sys.argv[1]:
+	elif 'list' == sys.argv[1]: # list all configured items
 		try:
 			list_all_items()
 		except Exception, e:
