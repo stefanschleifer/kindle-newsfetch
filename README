@@ -3,7 +3,7 @@ INTRO
 
 kindle-newsfetch is a simple Python script which fetches calibre recipes,
 turns them into Kindle newspapers using 'ebook-convert' and sends them to
-the configured Kindle e-mail adress using 'calibre-smtp'.
+the configured Kindle e-mail address using 'calibre-smtp'.
 
 Thanks to Moritz F. Fuerst, who had the idea for this script, developed requirements,
 filled and fixed bugs, contributed documentation as well as tested it extensively.
