@@ -211,15 +211,16 @@ if '__main__' == __name__:
 			print "Cannot continue without configuration file. Either rerun %s and let it create the configuration file for you or create it manually. See example.cfg for possible options/values." % sys.argv[0]
 			sys.exit(1)
 
-	if 'all' == sys.argv[1]: # convert and mail all configured items
-		recipes = collect_recipes()
+	if sys.argv[1] in ['all', 'section', 'item']:
+		if 'section' == sys.argv[1]:
+			recipes = collect_recipes(sys.argv[2])
+		elif 'item' == sys.argv[1]:
+			recipes = collect_recipes(item=sys.argv[2])
+		else
+			recipes = collect_recipes()
+
 		convert_recipes(recipes)
-	elif 'section' == sys.argv[1]: # convert and mail all items of a given section
-		recipes = collect_recipes(sys.argv[2])
-		convert_recipes(recipes)
-	elif 'item' == sys.argv[1]: # convert and mail exactly one specific item
-		recipes = collect_recipes(item=sys.argv[2])
-		convert_recipes(recipes)
+		send_ebooks()
 	elif 'add' == sys.argv[1]: # add a new configuration item
 		try:
 			add_item(sys.argv[2], sys.argv[3], sys.argv[4])
