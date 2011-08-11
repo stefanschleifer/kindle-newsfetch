@@ -11,6 +11,8 @@
 
 import sys, os
 import ConfigParser
+import subprocess
+import glob
 
 # full path to configuration file
 CONFIGFILE = '/Users/stefan/.src/kindle-newsfetch/newsfetch.cfg'
@@ -39,16 +41,27 @@ def create_configuration():
 		recipes_path = raw_input("Please enter the absolute path to the directory where your recipes are stored [%s/recipes]: " % os.getcwd())
 		if not recipes_path: # user chose to use default value
 			recipes_path = "%s/recipes" % os.getcwd()
+		# create the directory if it does not exist
+		if not os.access(recipes_path, os.W_OK): os.mkdir(recipes_path)
 		config.set('config', 'RECIPES_PATH', recipes_path)
 		output_path = raw_input("Please enter the absolute path to the directory for storing the converted files [%s/tmp]: " % os.getcwd())
 		if not output_path: # user chose to use default value
 			output_path = "%s/tmp" % os.getcwd()
+		# create the directory if it does not exist
+		if not os.access(output_path, os.W_OK): os.mkdir(output_path)
 		config.set('config', 'OUTPUT_PATH', output_path)
 		config.set('config', 'SMTP_SERVER', raw_input("Please enter the address of your desired SMTP server: "))
 		config.set('config', 'SMTP_USER', raw_input("Please enter the username for the given server: "))
 		config.set('config', 'SMTP_PW', raw_input("Please enter the password for the given user (WILL BE STORED IN PLAINTEXT!): "))
-		config.set('config', 'EBOOK-CONVERT', raw_input("Please enter the absolute path to 'ebook-convert': "))
-		config.set('config', 'CALIBRE-SMTP', raw_input("Please enter the absolute path to 'calibre-smtp': "))
+		config.set('config', 'SMTP_MAILADDR', raw_input("Please enter your mail address for this server: ")) 
+		ebook_convert = raw_input("Please enter the absolute path to 'ebook-convert' [/usr/bin/ebook-convert]: ")
+		if not ebook_convert:
+			ebook_convert = '/usr/bin/ebook-convert'
+		config.set('config', 'EBOOK_CONVERT', ebook_convert)
+		calibre_smtp = raw_input("Please enter the absolute path to 'calibre-smtp' [/usr/bin/calibre-smtp]: ")
+		if not calibre_smtp:
+			calibre_smtp = '/usr/bin/calibre-smtp'
+		config.set('config', 'CALIBRE-SMTP', calibre_smtp)
 
 		config.add_section('example')
 		config.set('example', 'nytimes', 'New York Times')
@@ -97,6 +110,8 @@ def add_item(recipe, name, section):
 	with open(CONFIGFILE, 'w') as configfile:
 		config.write(configfile)
 
+	print "Successfully added item %s. Please add the required %s.recipe in %s now." % (name, recipe, config.get('config', 'recipes_path'))
+
 # return a list of unique recipe names which
 # should be converted in the current run
 def collect_recipes(section='all', item=None):
@@ -131,6 +146,53 @@ def collect_recipes(section='all', item=None):
 	# Attention: We're removing duplicate entries here, user hopefully expect this behavior!
 	return list(set(recipes))
 
+# convert a list of recipes to .mobi-format using ebook-convert
+def convert_recipes(recipes):
+	config = ConfigParser.SafeConfigParser()
+	config.read(CONFIGFILE)
+	recipes_path = config.get('config', 'recipes_path')
+	output_path = config.get('config', 'output_path')
+	ebook_convert = config.get('config', 'ebook-convert')
+
+	for recipe in recipes:
+		try:
+			retcode = subprocess.call([ebook_convert, os.path.join(recipes_path, recipe + ".recipe"), os.path.join(output_path, recipe + ".mobi")])
+			if 0 != retcode:
+				raise Exception("Error while converting recipe %s" % recipe)
+		except Exception ,e:
+			print "Could not convert %s: %s." % ( os.path.join(recipes_path, recipe + ".mobi"), e)
+
+# send all .mobi-files in defined output-directory
+# to user via calibre-smtp
+def send_ebooks():
+	config = ConfigParser.SafeConfigParser()
+	config.read(CONFIGFILE)
+	calibre_smtp = config.get('config', 'calibre-smtp')
+	
+	# get all .mobi-files in output-dir
+	files = glob.glob(config.get('config', 'output_path') + "/*.mobi")
+	for f in files:
+		try:
+			retcode = subprocess.call([calibre_smtp, '-r', config.get('config', 'smtp_server'), '-u', config.get('config', 'smtp_user'), '-p', config.get('config', 'smtp_pw'), '-s', 'Send to Kindle', '-a', f, '-vv', config.get('config', 'smtp_mailaddr'), config.get('config', 'kindle_addr'), 'Send to Kindle'])
+			if 0 != retcode:
+				raise Exception("Error while sending .mobi-files via calibre-smtp.")
+		except Exception, e:
+			print "Could not send convertes files via mail: %s" % e
+
+	cleanup()
+
+# clean output direcotry
+def cleanup():
+	config = ConfigParser.SafeConfigParser()
+	config.read(CONFIGFILE)
+	output_path = config.get('config', 'output_path')	
+
+	# get all .mobi-files in output-dir...
+	files = glob.glob(config.get('config', 'output_path') + "/*.mobi")
+	# ... and remove them
+	for f in files:
+		os.remove(f)
+
 if '__main__' == __name__:
 
 	if not len(sys.argv) > 1:
@@ -151,10 +213,13 @@ if '__main__' == __name__:
 
 	if 'all' == sys.argv[1]: # convert and mail all configured items
 		recipes = collect_recipes()
+		convert_recipes(recipes)
 	elif 'section' == sys.argv[1]: # convert and mail all items of a given section
 		recipes = collect_recipes(sys.argv[2])
+		convert_recipes(recipes)
 	elif 'item' == sys.argv[1]: # convert and mail exactly one specific item
 		recipes = collect_recipes(item=sys.argv[2])
+		convert_recipes(recipes)
 	elif 'add' == sys.argv[1]: # add a new configuration item
 		try:
 			add_item(sys.argv[2], sys.argv[3], sys.argv[4])
