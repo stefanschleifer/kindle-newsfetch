@@ -13,6 +13,8 @@ import sys, os
 import ConfigParser
 import subprocess
 import glob
+from datetime import datetime
+import shutil
 
 # full path to configuration file
 CONFIGFILE = 'newsfetch.cfg'
@@ -20,6 +22,7 @@ CONFIGFILE = 'newsfetch.cfg'
 # print help information
 def usage():
 	print "\nUsage: %s <command> [options]\n" % sys.argv[0]
+	print "\tinit: Create configuration file."
 	print "\tall: Fetch and convert all configured items."
 	print "\tsection|-s <section_name>: Fetch and convert all items of given section."
 	print "\titem|-i <item_name>: Only fetch and convert item named <item_name>."
@@ -62,6 +65,16 @@ def create_configuration():
 		if not calibre_smtp:
 			calibre_smtp = '/usr/bin/calibre-smtp'
 		config.set('config', 'CALIBRE-SMTP', calibre_smtp)
+		keep_backup = raw_input("Keep backup of converted newspapers (y/n)? ")
+		if 'y' == keep_backup:
+			backup_path = raw_input("Please enter the absolute path where to store the backup [%s/backup]: " % os.getcwd())
+			if not backup_path:
+				backup_path = "%s/backup" % os.getcwd()
+			if not os.access(backup_path, os.W_OK): os.mkdir(backup_path)
+			config.set('config', 'backup_path', backup_path)
+			config.set('config', 'backup', 'true')
+		else:
+			config.set('config', 'backup', 'false')
 
 		config.add_section('example')
 		config.set('example', 'nytimes', 'New York Times')
@@ -179,24 +192,34 @@ def send_ebooks():
 		except Exception, e:
 			print "Could not send convertes files via mail: %s" % e
 
-	cleanup()
-
 # clean output direcotry
 def cleanup():
 	config = ConfigParser.SafeConfigParser()
 	config.read(CONFIGFILE)
 	output_path = config.get('config', 'output_path')	
-
-	# get all .mobi-files in output-dir...
+	
+	# get all .mobi-files in output directory
 	files = glob.glob(config.get('config', 'output_path') + "/*.mobi")
-	# ... and remove them
-	for f in files:
-		os.remove(f)
+
+	# create a backup of created .mobi-files?
+	if 'true' == config.get('config', 'backup'):
+		backup_path = config.get('config', 'backup_path')
+		for f in files:
+			# add current time to file
+			now = datetime.now().strftime('%Y%m%d%H%M%S')
+			shutil.move(f, os.path.join(backup_path, now + "-" + os.path.basename(f))) 
+	else:
+		# remove files
+		for f in files:
+			os.remove(f)
 
 if '__main__' == __name__:
 
 	if not len(sys.argv) > 1:
 		usage()
+
+	if 'init' == sys.argv[1]:
+		create_configuration()	
 
 	# check if configuration file exists
 	# or promt to create one
@@ -221,6 +244,7 @@ if '__main__' == __name__:
 
 		convert_recipes(recipes)
 		send_ebooks()
+		cleanup()
 	elif 'add' == sys.argv[1]: # add a new configuration item
 		try:
 			add_item(sys.argv[2], sys.argv[3], sys.argv[4])
