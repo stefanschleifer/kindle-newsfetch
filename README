@@ -15,3 +15,5 @@ DEPENDENCIES
 USAGE
 
 Run 'newsfetch.py help' to get detailed information about how to use kindle-newsfetch.
+
+Adjust 'CONFIGFILE' in newsfetch.py and you're ready to go.

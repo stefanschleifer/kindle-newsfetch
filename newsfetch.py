@@ -15,7 +15,7 @@ import subprocess
 import glob
 
 # full path to configuration file
-CONFIGFILE = '/Users/stefan/.src/kindle-newsfetch/newsfetch.cfg'
+CONFIGFILE = 'newsfetch.cfg'
 
 # print help information
 def usage():
