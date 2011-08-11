@@ -216,7 +216,7 @@ if '__main__' == __name__:
 			recipes = collect_recipes(sys.argv[2])
 		elif 'item' == sys.argv[1]:
 			recipes = collect_recipes(item=sys.argv[2])
-		else
+		else:
 			recipes = collect_recipes()
 
 		convert_recipes(recipes)
