@@ -152,7 +152,7 @@ def convert_recipes(recipes):
 	config.read(CONFIGFILE)
 	recipes_path = config.get('config', 'recipes_path')
 	output_path = config.get('config', 'output_path')
-	ebook_convert = config.get('config', 'ebook-convert')
+	ebook_convert = config.get('config', 'ebook_convert')
 
 	for recipe in recipes:
 		try:
