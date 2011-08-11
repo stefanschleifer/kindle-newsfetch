@@ -211,10 +211,10 @@ if '__main__' == __name__:
 			print "Cannot continue without configuration file. Either rerun %s and let it create the configuration file for you or create it manually. See example.cfg for possible options/values." % sys.argv[0]
 			sys.exit(1)
 
-	if sys.argv[1] in ['all', 'section', 'item']:
-		if 'section' == sys.argv[1]:
+	if sys.argv[1] in ['all', 'section', 'item', '-i', '-s']:
+		if 'section' == sys.argv[1] or '-s' == sys.argv[1]:
 			recipes = collect_recipes(sys.argv[2])
-		elif 'item' == sys.argv[1]:
+		elif 'item' == sys.argv[1] or '-i' == sys.argv[1]:
 			recipes = collect_recipes(item=sys.argv[2])
 		else:
 			recipes = collect_recipes()
