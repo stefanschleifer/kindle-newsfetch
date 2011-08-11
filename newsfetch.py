@@ -56,7 +56,14 @@ def create_configuration():
 
 # list all configured items with their names
 def list_all_items():
-	print "not implemented yet"
+	config = ConfigParser.SafeConfigParser()
+	config.read(CONFIGFILE)
+	for section in config.sections():
+		# ignore config and example sections
+		if section != 'config' and section != 'example':
+			print "Section: %s" % section
+			for recipe, name in config.items(section):
+				print "\t%s (%s)" % (name, recipe)
 
 # add a new configuration item
 def add_item(recipe, name, section):
@@ -118,7 +125,10 @@ if '__main__' == __name__:
 		else:
 			print "Successfully added item to configuration."
 	elif 'list' == sys.argv[1]:
-		list_all_items()
+		try:
+			list_all_items()
+		except Exception, e:
+			print "Could not list all items: %s" % e
 	else:
 		usage()
 
