@@ -21,8 +21,8 @@ CONFIGFILE = 'newsfetch.cfg'
 def usage():
 	print "\nUsage: %s <command> [options]\n" % sys.argv[0]
 	print "\tall: Fetch and convert all configured items."
-	print "\tsection <section_name>: Fetch and convert all items of given section."
-	print "\titem <item_name>: Only fetch and convert item named <item_name>."
+	print "\tsection|-s <section_name>: Fetch and convert all items of given section."
+	print "\titem|-i <item_name>: Only fetch and convert item named <item_name>."
 	print "\tadd <recipe_name> <item_name> <section_name>: Add a new item <item_name> with recipe-id <recipe_name> to section <section_name>."
 	print "\tlist: Get a list of all configured items."
 	sys.exit(1)
