@@ -169,7 +169,7 @@ def convert_recipes(recipes):
 
 	for recipe in recipes:
 		try:
-			retcode = subprocess.call([ebook_convert, os.path.join(recipes_path, recipe + ".recipe"), os.path.join(output_path, recipe + ".mobi")])
+			retcode = subprocess.call([ebook_convert, os.path.join(recipes_path, recipe + ".recipe"), os.path.join(output_path, recipe + ".mobi"), "--output-profile=kindle"])
 			if 0 != retcode:
 				raise Exception("Error while converting recipe %s" % recipe)
 		except Exception ,e:
